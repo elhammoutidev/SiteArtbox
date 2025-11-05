@@ -1,41 +1,49 @@
 <?php
-require_once(__DIR__ . '/config/databaseconnect.php');
-require 'header.php';
-require 'oeuvres.php';
+include 'header.php';
 
-// Si l'URL ne contient pas d'id, on redirige sur la page d'accueil
-if (empty($_GET['id'])) {
+// On vérifie qu'un id est bien présent dans l'URL
+if (!isset($_GET['id'])) {
+    // Si pas d'id, on redirige vers la page d'accueil
     header('Location: index.php');
+    exit;
 }
 
-$oeuvre = null;
+// On récupère l'id dans l'URL et on le convertit en entier
+$id = (int) $_GET['id'];
 
-// On parcourt les oeuvres du tableau afin de rechercher celle qui a l'id précisé dans l'URL
-foreach ($oeuvres as $o) {
-    // intval permet de transformer l'id de l'URL en un nombre (exemple : "2" devient 2)
-    if ($o['id'] === intval($_GET['id'])) {
-        $oeuvre = $o;
-        break; // On stoppe le foreach si on a trouvé l'oeuvre
-    }
-}
+// On inclut le fichier de connexion
+require_once 'bdd.php';
 
-// Si aucune oeuvre trouvé, on redirige vers la page d'accueil
-if (is_null($oeuvre)) {
+// On se connecte à la base de données
+$pdo = connexion();
+
+// Requête préparée : on récupère l'oeuvre correspondant à cet id
+$sql = "SELECT id, title, artist, description, photo_url 
+        FROM oeuvres 
+        WHERE id = :id";
+
+// Préparation de la requête
+$stmt = $pdo->prepare($sql);
+
+// Exécution avec la valeur de l'id
+$stmt->execute(['id' => $id]);
+
+// On récupère une seule oeuvre (ou false si aucune trouvée)
+$oeuvre = $stmt->fetch(PDO::FETCH_ASSOC);
+
+// Si aucune oeuvre trouvée, on redirige vers l'accueil
+if (!$oeuvre) {
     header('Location: index.php');
+    exit;
 }
 ?>
 
-<article id="detail-oeuvre">
-    <div id="img-oeuvre">
-        <img src="<?= $oeuvre['image'] ?>" alt="<?= $oeuvre['titre'] ?>">
-    </div>
-    <div id="contenu-oeuvre">
-        <h1><?= $oeuvre['titre'] ?></h1>
-        <p class="description"><?= $oeuvre['artiste'] ?></p>
-        <p class="description-complete">
-            <?= $oeuvre['description'] ?>
-        </p>
-    </div>
+<article class="oeuvre-detail">
+    <img src="<?= htmlspecialchars($oeuvre['photo_url']) ?>"
+        alt="<?= htmlspecialchars($oeuvre['title']) ?>">
+    <h1><?= htmlspecialchars($oeuvre['title']) ?></h1>
+    <p class="artist"><?= htmlspecialchars($oeuvre['artist']) ?></p>
+    <p class="description"><?= htmlspecialchars($oeuvre['description']) ?></p>
 </article>
 
-<?php require 'footer.php'; ?>
+<?php include 'footer.php'; ?>
