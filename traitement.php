@@ -1,4 +1,7 @@
 <?php
+// On inclut la connexion à la base dès le début du fichier
+require_once 'bdd.php';
+
 // Validation du formulaire d'ajout d'une œuvre (étape 5)
 
 // 1) On vérifie que la page a bien été appelée en POST
@@ -50,18 +53,28 @@ $artist      = htmlspecialchars($artistRaw, ENT_QUOTES, 'UTF-8');
 $description = htmlspecialchars($descriptionRaw, ENT_QUOTES, 'UTF-8');
 $photoUrl    = htmlspecialchars($photoUrlRaw, ENT_QUOTES, 'UTF-8');
 
-// 5) Si AUCUNE erreur : on insère en BDD puis on redirige
+// 6) Si AUCUNE erreur : on insère en BDD puis on redirige
 if (empty($errors)) {
-    require_once 'bdd.php';
+    // Connexion à la base de données
     $pdo = connexion();
-    $sql = "INSERT INTO oeuvres (title, artist, description,photo_url) 
-            VALUES (?, ?, ?, ?)";
+
+    // Requête d'insertion
+    $sql = "INSERT INTO oeuvres (title, artist, description, photo_url)
+            VALUES (:title, :artist, :description, :photo_url)";
+
     $stmt = $pdo->prepare($sql);
-    $stmt->execute([$title, $artist, $description, $photoUrl]);
-    header('location: index.php');
+
+    $stmt->execute([
+        ':title'       => $titleRaw,
+        ':artist'      => $artistRaw,
+        ':description' => $descriptionRaw,
+        ':photo_url'   => $photoUrlRaw,
+    ]);
+
+    // Redirection vers la page d'accueil après succès
+    header('Location: index.php');
     exit;
 }
-
 ?>
 
 <?php include 'header.php'; ?>
@@ -83,10 +96,10 @@ if (empty($errors)) {
         </p>
 
     <?php else: ?>
-        <!-- Aucune erreur : toutes les informations sont valides -->
+        <!-- Aucune erreur : ce bloc ne s'affichera normalement jamais,
+             car on redirige déjà vers index.php en cas de succès -->
         <h2>Les informations sont valides ✅</h2>
-        <p>
-            À l’étape suivante, ces données pourront être enregistrées en base de données.</p>
+        <p>Les données ont été enregistrées avec succès.</p>
 
         <h3>Récapitulatif de l’œuvre :</h3>
         <ul>
